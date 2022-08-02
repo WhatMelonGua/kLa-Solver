@@ -26,10 +26,7 @@ def timeSet(arr,num1):
 
 # 核心求解器
 def kLaSolver(DO_r,t,kLa_probe,step,kLa_set,C_abs):
-    DO_r = [0.08, 0.14, 0.20, 0.26, 0.32, 0.38, 0.43, 0.49, 0.53, 0.58, 0.62, 0.66, 0.69, 0.72, 0.75, 0.78, 0.80, 0.82,
-            0.84, 0.85, 0.86, 0.88, 0.89, 0.91, 0.91, 0.92, 0.93, 0.94, 0.94, 0.95]
-    t = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135,
-         140, 145, 150, 155]
+
     tlength = t[-1] - t[0]
     srcData = {}
 
@@ -37,68 +34,101 @@ def kLaSolver(DO_r,t,kLa_probe,step,kLa_set,C_abs):
         srcData[t[i]] = DO_r[i]
 
     polyFormula = np.polyfit(list(srcData.keys()), list(srcData.values()), 3)  # 对测量数据拟合，以满足 时间布长求解需求
-
     simData = {t[0]: DO_r[0]}  # 拟合二阶响应 DO-t 数据集
 
     for i in range(int(tlength / step)):  # 创建 拟合 虚拟对比数据点
         t_v = list(simData.keys())[i] + step
-        simData[t_v] = polyFormula[0] * t_v ** 3 + polyFormula[1] * t_v ** 2 + polyFormula[2] * t_v + polyFormula[3]
+        simData[t_v] = polyFormula[0] * t_v ** 3 + polyFormula[1] * t_v ** 2 + polyFormula[2] * t_v ** 1 + polyFormula[3]
 
+    for i in range(len(t)):  # 纯入字典一对一，可更改
+        srcData[t[i]] = DO_r[i]
+
+    tlength = t[-1] - t[0]
+    srcData = {}
+
+    for i in range(len(t)):  # 纯入字典一对一，可更改
+        srcData[t[i]] = DO_r[i]
+
+    polyFormula = np.polyfit(list(srcData.keys()), list(srcData.values()), 3)  # 对测量数据拟合，以满足 时间布长求解需求
+    simData = {t[0]: DO_r[0]}  # 拟合二阶响应 DO-t 数据集
+
+    for i in range(int(max(t) / step)):  # 创建 拟合 虚拟对比数据点
+        t_v = list(simData.keys())[i] + step
+        simData[t_v] = polyFormula[0] * t_v ** 3 + polyFormula[1] * t_v ** 2 + polyFormula[2] * t_v ** 1 + polyFormula[
+            3]
     # 核心求解代码
     n = 0  # 迭代次数
-    simNum = 0.9  # 满足相似阈值的 数据占比（最大为1），在迭代过多时自行下降
-    core = [5, 2, 1]  # 虚拟步进倍数,代表的不是时间，是simData间隔 4 单位的时间差，慢慢精细
-    perSet = [0.5, 0.2, 0.1]  # 与虚拟步进对应的阈值，求解进此范围表示足够精确，可以进入下一更小的步进量
-    kLaCag = [0.0001, 0.00001, 0.000005]  # 对应的kLa调节幅度 s-1
+    surNum = [0.1, 0.05, 0.01]  # 满足相似阈值的 数据占比（最大为1），在迭代过多时自行下降
+    core = [3, 2, 1]  # 虚拟步进倍数,代表的不是时间，是simData间隔 4 单位的时间差，慢慢精细
+    kLaCag = [0.001, 0.0001, 0.00001]  # 对应的kLa调节幅度 s-1
     coreNum = 0  # 虚拟步进取值 索引
-    out_step = [1000, 10000, 20000]  # 设置值，最大迭代次数，防止模拟较差无法导出结果
-    diff = 1000
+    out_step = [1000, 5000, 1000]  # 设置值，最大迭代次数，防止模拟较差无法导出结果
     kLa_rem = []
-    # while True:                            # 当所有对应值都较好收敛结束求解
-    vir_Cp = {t[0]: DO_r[0]}  # 虚拟电极读数DO-t
-    vir_Cb = {t[0]: DO_r[0]}  # 虚拟料液DO-t
-    diff = {}  # 每步进数据 与 实验数据 差异值
-    gap = core[coreNum]  # 步进量
-    v_step = list(simData.keys())[gap] - list(simData.keys())[0]  # 虚拟时间步进量 s
 
     while True:
-        up = 0
-        down = 0
-        passNum = 0
-        for i in range(int(len(simData) / gap)):
-            vir_Cb[list(vir_Cb.keys())[i] + gap] = list(vir_Cb.values())[i] + kLa_set * (
-                        C_abs - list(vir_Cb.values())[i]) * v_step
-            vir_Cp[list(vir_Cp.keys())[i] + gap] = list(vir_Cp.values())[i] + kLa_probe * (
-                        list(vir_Cb.values())[i] - list(vir_Cp.values())[i]) * v_step
+        print(kLa_set)                        # 当所有对应值都较好收敛结束求解
+        vir_Cp = {t[0]: DO_r[0]}  # 虚拟电极读数DO-t
+        vir_Cb = {t[0]: DO_r[0]}  # 虚拟料液DO-t
+        diff = {}  # 每步进数据 与 实验数据 差异值
+        diff2 = {}
+        gap = core[coreNum]  # 步进量
+        v_step = list(simData.keys())[gap] - list(simData.keys())[0]  # 虚拟时间步进量 s
+        for i in range(int(len(simData) / gap)-1):
+            vir_Cb[list(vir_Cb.keys())[i] + v_step] = list(vir_Cb.values())[i] + kLa_set * (
+                    C_abs - list(vir_Cb.values())[i]) * v_step
+            vir_Cp[list(vir_Cp.keys())[i] + v_step] = round(list(vir_Cp.values())[i] + kLa_probe * (
+                    list(vir_Cb.values())[i] - list(vir_Cp.values())[i]) * v_step, 4)
+        simGap = {}
+        for i in range(len(vir_Cp)):
+            simGap[list(vir_Cp.keys())[i]] = round(simData[list(vir_Cp.keys())[i]], 4)
+
         for i in range(len(vir_Cp)):  # 公式 difs = (模拟值-实际拟合值)/实际拟合值
-            difs = (list(vir_Cp.values())[i] - simData[list(vir_Cp.keys())[i]]) / simData[list(vir_Cp.keys())[i]]
-            if difs > 0:
-                up += 1
-            elif difs < 0:
-                down += 1
-            if abs(difs) <= perSet[coreNum]:
-                passNum += 1
-            diff[list(vir_Cp.keys())[i]] = abs(difs)
-        if passNum / len(vir_Cp) > simNum:  # 整体相似度判断
+            difs = (list(vir_Cp.values())[i] - list(simGap.values())[i])
+            diff2[list(vir_Cp.keys())[i]] = round(difs, 4)
+            diff[list(vir_Cp.keys())[i]] = round(abs(difs), 4)
+
+        sur_abs = sum(list(diff.values()))/len(diff)*v_step
+        sur = sum(list(diff2.values()))/len(diff)*v_step
+        print(sur)
+        # 计算离散度
+        if sur_abs < surNum[coreNum]:  # 整体相似度判断
+            n = 0  # 更新求解要求要置0
+            simGap = {}
+            for i in range(len(vir_Cp)):
+                simGap[list(vir_Cp.keys())[i]] = simData[list(vir_Cp.keys())[i]]
             if coreNum == 1:
-                print("2阶段 步进结果已有一些精确参考价值，在总数据的", round(simNum*100,4), "% 数据点中，满足了差异小于 ", 0.2)
+                print("——————————————\n2阶段 步进结果已有一些精确参考价值，数据点 平均差异 <", surNum[coreNum] * 100, " %")
                 print("kLa：", kLa_set, "\n——————————————")
+                kLa_rem.append(kLa_set)
             if coreNum < 2:
-                simNum = 0.9  # 重置simNum 以得到最好结果
                 coreNum += 1
             else:
                 print('_____________________')
                 print('结果出现，kLa较好值为：', kLa_set)
-                print('本次迭代满足整体差异值小于 ', perSet[coreNum], ' 的数据点 占总数据的 ', round(simNum*100,4),"%")
+                print('本次迭代满足整体 数据点 平均差异 < ', surNum[coreNum]*100, ' % 整体相对真实值偏向', sur)
+                kLa_rem.append(kLa_set)
                 break
-        if up >= down:  # 整体上下调判断
+
+        if sur > 0:  # 整体上下调判断
             kLa_set -= kLaCag[coreNum]
-        elif up < down:
+        elif sur <= 0:
             kLa_set += kLaCag[coreNum]
         if n > out_step[coreNum]:
-            print("模拟步进 ", coreNum + 1, " 阶段因 数据点误差 或 程序设置精密度问题，无法达到 ", round(simNum*100,4), "% 数据占比满足阈值，自动下调2.5%")
-            n = 0
-            simNum -= 0.025
+            print("模拟步进 ", coreNum + 1, " 阶段因 数据点误差 或 程序设置精密度问题，无法达到 ", surNum[coreNum] * 100, "% 的数据点 平均差异，直接进入更精细的求解步骤")
+            if coreNum < 2:
+                coreNum += 1
+            else:
+                simGap = {}
+                for i in range(len(vir_Cp)):
+                    simGap[list(vir_Cp.keys())[i]] = simData[list(vir_Cp.keys())[i]]
+                print(vir_Cp)
+                print(simGap)
+                print('_____________________')
+                print('迭代完毕，无法找到合适值，可能本实验不符合二阶模型 或 输入的电极传质系数有误，请于Excel手动匹配')
+                print('过程中存在左右端不匹配的情况，但整体(曲线中部)较为相似，以下是参考kLa取值：')
+                print(kLa_rem)
+                break
+            n = 0  # 更新求解要求要置0
         n += 1
 # 主程序
 if __name__ == '__main__':
