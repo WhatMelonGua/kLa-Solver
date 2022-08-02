@@ -40,13 +40,13 @@ def kLaSolver(DO_r,t,kLa_probe,step,kLa_set,C_abs):
         t_v = list(simData.keys())[i] + step
         simData[t_v] = polyFormula[0] * t_v ** 3 + polyFormula[1] * t_v ** 2 + polyFormula[2] * t_v ** 1 + polyFormula[3]
 
-    for i in range(len(t)):  # 纯入字典一对一，可更改
+    for i in range(len(t)):  # 字典一对一，可更改
         srcData[t[i]] = DO_r[i]
 
     tlength = t[-1] - t[0]
     srcData = {}
 
-    for i in range(len(t)):  # 纯入字典一对一，可更改
+    for i in range(len(t)):  # 字典一对一，可更改
         srcData[t[i]] = DO_r[i]
 
     polyFormula = np.polyfit(list(srcData.keys()), list(srcData.values()), 3)  # 对测量数据拟合，以满足 时间布长求解需求
@@ -82,7 +82,7 @@ def kLaSolver(DO_r,t,kLa_probe,step,kLa_set,C_abs):
         for i in range(len(vir_Cp)):
             simGap[list(vir_Cp.keys())[i]] = round(simData[list(vir_Cp.keys())[i]], 4)
 
-        for i in range(len(vir_Cp)):  # 公式 difs = (模拟值-实际拟合值)/实际拟合值
+        for i in range(len(vir_Cp)):  # 公式 difs = (模拟值-实际拟合值)
             difs = (list(vir_Cp.values())[i] - list(simGap.values())[i])
             diff2[list(vir_Cp.keys())[i]] = round(difs, 4)
             diff[list(vir_Cp.keys())[i]] = round(abs(difs), 4)
@@ -90,7 +90,7 @@ def kLaSolver(DO_r,t,kLa_probe,step,kLa_set,C_abs):
         sur_abs = sum(list(diff.values()))/len(diff)*v_step
         sur = sum(list(diff2.values()))/len(diff)*v_step
         print(sur)
-        # 计算离散度
+        # 计算整体平均离散度
         if sur_abs < surNum[coreNum]:  # 整体相似度判断
             n = 0  # 更新求解要求要置0
             simGap = {}
