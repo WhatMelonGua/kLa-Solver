@@ -1,4 +1,4 @@
-This python code is abadon
+This python code has been discarded
 Try to fix your dissolved oxygen electrode's response time on website:
 http://onlineferment.site/ClarkCorrect.html
 it's more convenient & stable!
